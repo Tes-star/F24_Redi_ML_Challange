@@ -82,7 +82,7 @@ if uploaded_file is not None:
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
 
                         # Display the score
-                        st.write(f"Prediction f1_score(average='macro') **{score:.3f}%**")
+                        st.write(f"Prediction f1_score(average='macro') **{score*100:.2f}%**")
 
                         # Save the score with timestamp
                         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
