@@ -8,7 +8,7 @@ import io
 import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
-import seaborn as sns
+import seaborn as sns  # Importing seaborn for enhanced visualizations
 
 # Generate a 32-byte key for Fernet encryption from the password
 def generate_key(password: str) -> bytes:
@@ -56,14 +56,14 @@ def display_leaderboard():
         leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
         st.write("### Leaderboard")
         st.write(
-            leaderboard_df.style.highlight_max(subset=['Score'], color='yellow')
-            .background_gradient(cmap="Greens")
+            leaderboard_df.style.highlight_max(subset=['Score'], color='yellow')  # Highlight max values in 'Score' column
+            .background_gradient(cmap="Greens")  # Use 'Greens' color map for background gradient
         )
-        return leaderboard_df
+        return leaderboard_df  # Return the leaderboard DataFrame for further processing
     except FileNotFoundError:
         st.write("### Leaderboard")
         st.write("No entries yet.")
-        return pd.DataFrame()
+        return pd.DataFrame()  # Return an empty DataFrame if no file found
 
 # Process uploaded file
 if uploaded_file is not None:
@@ -75,6 +75,7 @@ if uploaded_file is not None:
             if set(['ID', 'Label']).issubset(df.columns):
                 if df['ID'].dtype == 'int64' and df['Label'].dtype == 'int64':
                     
+                    # Check IDs are the same and in the same order
                     if list(df['ID']) != list(correct_labels['ID']):
                         st.error("Mismatch in ID column. Ensure IDs match exactly and are in the same order.")
                     else:
@@ -88,13 +89,16 @@ if uploaded_file is not None:
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
                         st.write(f"Prediction f1_score(average='macro') **{score * 100:.2f}%**")
                         
+                        # Check if the score is better than 65%
                         if score < 0.65:
                             st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
 
+                        # Ask for user's name
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
 
+                        # Add to leaderboard button
                         if st.button("Add to Leaderboard"):
-                            if user_name:
+                            if user_name:  # Check if user_name is provided
                                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                 score_entry = {
                                     "Name": user_name,
@@ -102,12 +106,14 @@ if uploaded_file is not None:
                                     "Timestamp": timestamp
                                 }
                                 
-                                # Append score to leaderboard
+                                # Append score to leaderboard if it's a new high score
                                 try:
                                     leaderboard_df = pd.read_csv(leaderboard_file)
-                                    # Update score if user exists
+                                    # Check if user already exists in the leaderboard
                                     if user_name in leaderboard_df['Name'].values:
+                                        # Get current best score for this user
                                         current_best_score = leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'].max()
+                                        # Update the score entry if the new score is better
                                         if score > current_best_score:
                                             leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'] = score
                                             leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Timestamp'] = timestamp
@@ -127,46 +133,60 @@ if uploaded_file is not None:
                             st.info("Press the button to add your score to the leaderboard.")
 
                         # Display the graph
-                        leaderboard_df = display_leaderboard()  
+                        leaderboard_df = display_leaderboard()  # Get the updated leaderboard
                         
                         if not leaderboard_df.empty:
+                            # Convert 'Timestamp' to datetime and round to the nearest hour
                             leaderboard_df['Timestamp'] = pd.to_datetime(leaderboard_df['Timestamp']).dt.floor('H')
 
+                            # Group by Name and Timestamp to get the latest score for each hour
                             best_scores = leaderboard_df.groupby(['Name', 'Timestamp']).agg(
                                 Best_Score=('Score', 'max')
                             ).reset_index()
+
+                            # Filter out anonymized names if needed
+                            best_scores = best_scores[best_scores['Name'] != 'anonym']  # Adjust as needed
 
                             # Calculate personal best for each user
                             best_scores['Personal_Best'] = best_scores.groupby('Name')['Best_Score'].cummax()
 
                             # Add last score for each user
-                            best_scores['Last_Score'] = best_scores.groupby('Name')['Best_Score'].transform(lambda x: x.ffill().bfill())
+                            best_scores['Last_Score'] = best_scores.groupby('Name')['Best_Score'].transform(lambda x: x.ffill().bfill())  # Last score for each user
 
-                            plt.clf()  
-                            plt.figure(figsize=(16, 10))  
-                            sns.set(style="whitegrid")  
-                            palette = sns.color_palette("husl", len(best_scores['Name'].unique()))
+                            # Plotting
+                            plt.figure(figsize=(16, 10))  # Increased size and DPI
+                            sns.set(style="whitegrid")  # Set background style
+                            palette = sns.color_palette("husl", len(best_scores['Name'].unique()))  # Unique palette
 
+                            # Plotting the personal best scores
                             sns.lineplot(data=best_scores, x='Timestamp', y='Personal_Best', hue='Name', palette=palette, linewidth=2)
 
+                            # Adding last observation points (continuing the line)
                             last_scores = best_scores[best_scores['Timestamp'] == best_scores.groupby('Name')['Timestamp'].transform('max')]
                             sns.lineplot(data=last_scores, x='Timestamp', y='Last_Score', hue='Name', palette=palette, linewidth=2, linestyle='--')
 
+                            # Draw the baseline at y=0.65
                             plt.axhline(y=0.65, color='black', linestyle='--', linewidth=0.5, label='Baseline')
 
                             plt.title('Personal Best Scores Over Time', fontsize=20, fontweight='bold')
                             plt.xlabel('Timestamp (Rounded to Hour)', fontsize=16)
                             plt.ylabel('Personal Best Score', fontsize=16)
 
+                            # Set x-ticks for every hour
                             plt.xticks(rotation=45)
                             plt.yticks(fontsize=14)
+
+                            # Set y limits
                             plt.ylim(0, 1.04)
+
+                            # Add y-gridlines every 0.05
                             plt.yticks(np.arange(0.0, 1.04, 0.05))
-                            plt.grid(visible=True, linestyle='--', linewidth=0.5)
+                            plt.grid(visible=True, linestyle='--', linewidth=0.5)  # Style for grid
                             plt.legend(title='Names', fontsize=14, title_fontsize='15', loc='upper left', bbox_to_anchor=(1, 1))
                             plt.tight_layout()
 
-                            st.pyplot()  
+                            # Render the plot in Streamlit
+                            st.pyplot(plt, clear_figure=True)  # Clear figure after rendering to prevent overlapping on reruns
 
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
