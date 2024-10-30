@@ -2,14 +2,17 @@ import streamlit as st
 import pandas as pd
 import io
 
-# Sample correct labels for Titanic dataset (id, label)
+# Sample correct labels for the Titanic dataset (PassengerId, label)
+# Ideally, you should read the actual dataset to create this dictionary.
+# For demonstration, let's assume some PassengerId labels.
+# This should be replaced with the actual labels from the Titanic dataset.
 correct_labels = {
-    1: 0, 2: 1, 3: 1, 4: 0, 5: 1, 6: 0, 7: 0, 8: 1, 9: 0, 10: 1, # etc.
+    1: 0, 2: 1, 3: 1, 4: 0, 5: 1, 6: 0, 7: 0, 8: 1, 9: 0, 10: 1,
     # Add the full set of correct Titanic labels here
 }
 
 # Convert correct_labels to a DataFrame for comparison
-correct_df = pd.DataFrame(list(correct_labels.items()), columns=['id', 'label'])
+correct_df = pd.DataFrame(list(correct_labels.items()), columns=['PassengerId', 'Survived'])
 
 # Function to detect delimiter in uploaded file
 def detect_delimiter(uploaded_file):
@@ -17,7 +20,6 @@ def detect_delimiter(uploaded_file):
     uploaded_file.seek(0)  # Reset pointer after reading the sample
     delimiters = [',', ';', '\t', '|']
     
-    # Test which delimiter works best
     for delimiter in delimiters:
         try:
             df = pd.read_csv(io.StringIO(sample), delimiter=delimiter, nrows=5)
@@ -28,13 +30,15 @@ def detect_delimiter(uploaded_file):
     return None
 
 # Streamlit app
-st.title("Machine Learning Predictions Evaluation")
+st.title("Titanic Predictions Evaluation")
 
+st.write(st.secrets)
 # Instructions
 st.write("""
-Upload a CSV file with two columns: `id` and `label`. The `id` column should correspond to unique identifiers, 
-and the `label` column should contain the predicted labels.
-The file must contain all the required ids, and there cannot be any missing ids.
+Upload a CSV file with two columns: `PassengerId` and `Survived`. 
+The `PassengerId` column should correspond to unique identifiers, 
+and the `Survived` column should contain the predicted survival labels.
+The file must contain all the required PassengerIds, and there cannot be any missing IDs.
 """)
 
 # File uploader
@@ -53,32 +57,32 @@ if uploaded_file is not None:
             st.write(df)
 
             # Validate the structure of the uploaded file
-            if "id" in df.columns and "label" in df.columns:
-                if df['id'].dtype == 'int64' and df['label'].dtype == 'int64':
+            if "PassengerId" in df.columns and "Survived" in df.columns:
+                if df['PassengerId'].dtype == 'int64' and df['Survived'].dtype == 'int64':
                     st.success("CSV format is correct!")
                     
                     # Check if all IDs are present
-                    missing_ids = set(correct_df['id']) - set(df['id'])
-                    extra_ids = set(df['id']) - set(correct_df['id'])
+                    missing_ids = set(correct_df['PassengerId']) - set(df['PassengerId'])
+                    extra_ids = set(df['PassengerId']) - set(correct_df['PassengerId'])
 
                     if missing_ids:
-                        st.error(f"Missing ids: {missing_ids}")
+                        st.error(f"Missing PassengerIds: {missing_ids}")
                     elif extra_ids:
-                        st.error(f"Unexpected extra ids found: {extra_ids}")
+                        st.error(f"Unexpected extra PassengerIds found: {extra_ids}")
                     else:
                         # Merge predictions with correct labels
-                        merged_df = pd.merge(df, correct_df, on="id", suffixes=('_pred', '_true'))
+                        merged_df = pd.merge(df, correct_df, on="PassengerId", suffixes=('_pred', '_true'))
                         
                         # Calculate accuracy
-                        accuracy = (merged_df['label_pred'] == merged_df['label_true']).mean()
+                        accuracy = (merged_df['Survived_pred'] == merged_df['Survived_true']).mean()
                         
                         st.write(f"Accuracy of predictions: **{accuracy * 100:.2f}%**")
                         st.write("Comparison of predictions and correct labels:")
                         st.write(merged_df)
                 else:
-                    st.error("Both 'id' and 'label' columns must be integers.")
+                    st.error("Both 'PassengerId' and 'Survived' columns must be integers.")
             else:
-                st.error("The uploaded file must contain 'id' and 'label' columns.")
+                st.error("The uploaded file must contain 'PassengerId' and 'Survived' columns.")
         except Exception as e:
             st.error(f"Error processing the file: {e}")
     else:
