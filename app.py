@@ -1,6 +1,14 @@
 import streamlit as st
 import pandas as pd
 import io
+from cryptography.fernet import Fernet
+import pandas as pd
+import base64
+import hashlib
+
+def generate_key(password: str) -> bytes:
+    # Hash the password to create a 32-byte key for Fernet
+    return base64.urlsafe_b64encode(hashlib.sha256(password.encode()).digest())
 
 def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
     # Generate a key from the password
