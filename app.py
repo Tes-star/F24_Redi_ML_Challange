@@ -91,6 +91,8 @@ if uploaded_file is not None:
                         try:
                             leaderboard_df = pd.read_csv(leaderboard_file)
                             leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
+                            # Drop any rows with NaN scores if necessary
+                            leaderboard_df.dropna(subset=['Score'], inplace=True)
                         except FileNotFoundError:
                             leaderboard_df = pd.DataFrame([score_entry])
                         
