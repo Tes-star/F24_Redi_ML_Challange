@@ -4,11 +4,11 @@ import pandas as pd
 from cryptography.fernet import Fernet
 import base64
 import hashlib
-import numpy as np
 import io
-from datetime import datetime, timedelta
+import numpy as np
+from datetime import datetime
 import matplotlib.pyplot as plt
-import seaborn as sns
+import seaborn as sns  # Importing seaborn for enhanced visualizations
 
 # Generate a 32-byte key for Fernet encryption from the password
 def generate_key(password: str) -> bytes:
@@ -132,59 +132,61 @@ if uploaded_file is not None:
                         else:
                             st.info("Press the button to add your score to the leaderboard.")
 
-                        # Display the graph and leaderboard side by side
-                        col1, col2 = st.columns(2)
+                        # Display the graph
+                        leaderboard_df = display_leaderboard()  # Get the updated leaderboard
+                        
+                        if not leaderboard_df.empty:
+                            # Convert 'Timestamp' to datetime and round to the nearest hour
+                            leaderboard_df['Timestamp'] = pd.to_datetime(leaderboard_df['Timestamp']).dt.floor('H')
 
-                        # Display the leaderboard in the first column
-                        with col2:
-                            leaderboard_df = display_leaderboard()  # Get the updated leaderboard
-                            
-                            if not leaderboard_df.empty:
-                                # Convert 'Timestamp' to datetime and adjust for GMT+1
-                                leaderboard_df['Timestamp'] = pd.to_datetime(leaderboard_df['Timestamp']) + timedelta(hours=1)
+                            # Group by Name and Timestamp to get the latest score for each hour
+                            best_scores = leaderboard_df.groupby(['Name', 'Timestamp']).agg(
+                                Best_Score=('Score', 'max')
+                            ).reset_index()
 
-                                # Group by Name and Timestamp to get the latest score for each hour
-                                best_scores = leaderboard_df.groupby(['Name', 'Timestamp']).agg(
-                                    Best_Score=('Score', 'max')
-                                ).reset_index()
+                            # Filter out anonymized names if needed
+                            best_scores = best_scores[best_scores['Name'] != 'anonym']  # Adjust as needed
 
-                                # Calculate personal best for each user
-                                best_scores['Personal_Best'] = best_scores.groupby('Name')['Best_Score'].cummax()
+                            # Calculate personal best for each user
+                            best_scores['Personal_Best'] = best_scores.groupby('Name')['Best_Score'].cummax()
 
-                                # Use the maximum timestamp for each user for the data points
-                                max_timestamp = best_scores['Timestamp'].max()
+                            # Add last score for each user
+                            best_scores['Last_Score'] = best_scores.groupby('Name')['Best_Score'].transform(lambda x: x.ffill().bfill())  # Last score for each user
 
-                                # Plotting
-                                plt.figure(figsize=(14, 8))
-                                sns.set(style="whitegrid")  # Set background style
-                                palette = sns.color_palette("husl", len(best_scores['Name'].unique()))  # Unique palette
+                            # Plotting
+                            plt.figure(figsize=(16, 10), dpi=120)  # Increased size and DPI
+                            sns.set(style="whitegrid")  # Set background style
+                            palette = sns.color_palette("husl", len(best_scores['Name'].unique()))  # Unique palette
 
-                                # Plotting the personal best scores
-                                sns.lineplot(data=best_scores, x='Timestamp', y='Personal_Best', hue='Name', palette=palette, linewidth=2)
+                            # Plotting the personal best scores
+                            sns.lineplot(data=best_scores, x='Timestamp', y='Personal_Best', hue='Name', palette=palette, linewidth=2)
 
-                                # Draw the baseline at y=0.65
-                                plt.axhline(y=0.65, color='black', linestyle='--', linewidth=0.5, label='Baseline')
+                            # Adding last observation points (continuing the line)
+                            last_scores = best_scores[best_scores['Timestamp'] == best_scores.groupby('Name')['Timestamp'].transform('max')]
+                            sns.lineplot(data=last_scores, x='Timestamp', y='Last_Score', hue='Name', palette=palette, linewidth=2, linestyle='--')
 
-                                plt.title('Personal Best Scores Over Time', fontsize=18, fontweight='bold')
-                                plt.xlabel('Timestamp (GMT+1)', fontsize=14)
-                                plt.ylabel('Personal Best Score', fontsize=14)
+                            # Draw the baseline at y=0.65
+                            plt.axhline(y=0.65, color='black', linestyle='--', linewidth=0.5, label='Baseline')
 
-                                # Set x-ticks for every hour
-                                plt.xticks(rotation=45)
-                                plt.yticks(fontsize=12)
+                            plt.title('Personal Best Scores Over Time', fontsize=20, fontweight='bold')
+                            plt.xlabel('Timestamp (Rounded to Hour)', fontsize=16)
+                            plt.ylabel('Personal Best Score', fontsize=16)
 
-                                # Set y limits
-                                plt.ylim(0, 1.04)
+                            # Set x-ticks for every hour
+                            plt.xticks(rotation=45)
+                            plt.yticks(fontsize=14)
 
-                                # Add y-gridlines every 0.05
-                                plt.yticks(np.arange(0.0, 1.04, 0.05))
-                                plt.grid(visible=True, linestyle='--', linewidth=0.2)  # Style for grid
-                                plt.legend(title='Names', fontsize=12, title_fontsize='13', loc='upper left', bbox_to_anchor=(1, 1))
-                                plt.tight_layout()
+                            # Set y limits
+                            plt.ylim(0, 1.04)
 
-                                # Render the plot in Streamlit
-                                with col1:
-                                    st.pyplot(plt)
+                            # Add y-gridlines every 0.05
+                            plt.yticks(np.arange(0.0, 1.04, 0.05))
+                            plt.grid(visible=True, linestyle='--', linewidth=0.5)  # Style for grid
+                            plt.legend(title='Names', fontsize=14, title_fontsize='15', loc='upper left', bbox_to_anchor=(1, 1))
+                            plt.tight_layout()
+
+                            # Render the plot in Streamlit
+                            st.pyplot(plt)
 
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
