@@ -81,11 +81,12 @@ if uploaded_file is not None:
                         # Display the columns in the merged DataFrame for debugging
                         st.write("Merged columns:", merged_df.columns.tolist())
 
-                        # Calculate F1 score with the appropriate label column
-                        score = f1_score(merged_df['Label_pred'], merged_df['Label'], average='weighted')
+                        # Calculate F1 score using the correct labels
+                        score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='weighted')
 
                         # Display the score
                         st.write(f"Prediction accuracy: **{score:.3f}%**")
+
                         st.write("Comparison of predictions and correct labels:", merged_df)
 
                         # Save the score with timestamp
