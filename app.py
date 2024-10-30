@@ -17,7 +17,7 @@ def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
     fernet = Fernet(key)
     with open(input_file, "rb") as file:
         decrypted_data = fernet.decrypt(file.read())
-    return pd.read_csv(io.BytesIO(decrypted_data))
+    return pd.read_csv(io.BytesIO(decrypted_data), delimiter=";")
 
 # Load correct labels
 pwd = st.secrets['pwd']
