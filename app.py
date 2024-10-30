@@ -1,107 +1,115 @@
 import streamlit as st
 import pandas as pd
-import io
 from cryptography.fernet import Fernet
-import pandas as pd
 import base64
 import hashlib
+import io
+from datetime import datetime
 
+# Generate a 32-byte key for Fernet encryption from the password
 def generate_key(password: str) -> bytes:
-    # Hash the password to create a 32-byte key for Fernet
     return base64.urlsafe_b64encode(hashlib.sha256(password.encode()).digest())
 
+# Decrypt the CSV file with the correct labels
 def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
-    # Generate a key from the password
     key = generate_key(password)
     fernet = Fernet(key)
-
-    # Read the encrypted file
     with open(input_file, "rb") as file:
-        encrypted_data = file.read()
+        decrypted_data = fernet.decrypt(file.read())
+    return pd.read_csv(io.BytesIO(decrypted_data))
 
-    # Decrypt the data
-    decrypted_data = fernet.decrypt(encrypted_data)
-
-    # Convert decrypted bytes back to a DataFrame
-    from io import BytesIO
-    return pd.read_csv(BytesIO(decrypted_data))
-
+# Load correct labels
 pwd = st.secrets['pwd']
-
 correct_labels = decrypt_csv("encrypted_data.csv", pwd)
+correct_df = pd.DataFrame(list(correct_labels.items()), columns=['ID', 'Correct_Label'])
 
-# Convert correct_labels to a DataFrame for comparison
-correct_df = pd.DataFrame(list(correct_labels.items()), columns=['PassengerId', 'Survived'])
-
-# Function to detect delimiter in uploaded file
-def detect_delimiter(uploaded_file):
+# Detect delimiter in uploaded file
+def detect_delimiter(uploaded_file) -> str:
     sample = uploaded_file.read(1024).decode()
-    uploaded_file.seek(0)  # Reset pointer after reading the sample
-    delimiters = [',', ';', '\t', '|']
-    
-    for delimiter in delimiters:
+    uploaded_file.seek(0)
+    for delimiter in [',', ';', '\t', '|']:
         try:
-            df = pd.read_csv(io.StringIO(sample), delimiter=delimiter, nrows=5)
-            if df.shape[1] > 1:
+            if pd.read_csv(io.StringIO(sample), delimiter=delimiter, nrows=5).shape[1] > 1:
                 return delimiter
-        except Exception as e:
+        except:
             continue
     return None
 
-# Streamlit app
-st.title("Titanic Predictions Evaluation")
+# Leaderboard data
+leaderboard_file = "leaderboard.csv"
 
-
-# Instructions
+# Display title and instructions
+st.title("Prediction Evaluation for BAKKI Project")
 st.write("""
-Upload a CSV file with two columns: `PassengerId` and `Survived`. 
-The `PassengerId` column should correspond to unique identifiers, 
-and the `Survived` column should contain the predicted survival labels.
-The file must contain all the required PassengerIds, and there cannot be any missing IDs.
+Upload a CSV with two columns: `ID` and `Predicted_Label`. 
+Ensure the file includes all required IDs, without any missing IDs.
 """)
+
+# Input for user name
+user_name = st.text_input("Enter your name (optional):")
 
 # File uploader
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
+# Process uploaded file
 if uploaded_file is not None:
-    # Detect delimiter
     delimiter = detect_delimiter(uploaded_file)
-    
     if delimiter:
         st.write(f"Detected delimiter: `{delimiter}`")
         try:
-            # Read uploaded CSV file with detected delimiter
             df = pd.read_csv(uploaded_file, delimiter=delimiter)
-            st.write("Uploaded CSV file preview:")
-            st.write(df)
-
-            # Validate the structure of the uploaded file
-            if "PassengerId" in df.columns and "Survived" in df.columns:
-                if df['PassengerId'].dtype == 'int64' and df['Survived'].dtype == 'int64':
+            st.write("Preview of uploaded file:", df.head())
+            
+            if set(['ID', 'Predicted_Label']).issubset(df.columns):
+                if df['ID'].dtype == 'int64' and df['Predicted_Label'].dtype == 'int64':
                     st.success("CSV format is correct!")
                     
-                    # Check if all IDs are present
-                    missing_ids = set(correct_df['PassengerId']) - set(df['PassengerId'])
-                    extra_ids = set(df['PassengerId']) - set(correct_df['PassengerId'])
+                    missing_ids = set(correct_df['ID']) - set(df['ID'])
+                    extra_ids = set(df['ID']) - set(correct_df['ID'])
 
                     if missing_ids:
-                        st.error(f"Missing PassengerIds: {missing_ids}")
+                        st.error(f"Missing IDs: {missing_ids}")
                     elif extra_ids:
-                        st.error(f"Unexpected extra PassengerIds found: {extra_ids}")
+                        st.error(f"Unexpected extra IDs found: {extra_ids}")
                     else:
-                        # Merge predictions with correct labels
-                        merged_df = pd.merge(df, correct_df, on="PassengerId", suffixes=('_pred', '_true'))
+                        merged_df = pd.merge(df, correct_df, on="ID", suffixes=('_pred', '_true'))
+                        accuracy = (merged_df['Predicted_Label_pred'] == merged_df['Correct_Label_true']).mean()
+                        score = accuracy * 100
                         
-                        # Calculate accuracy
-                        accuracy = (merged_df['Survived_pred'] == merged_df['Survived_true']).mean()
+                        st.write(f"Prediction accuracy: **{score:.2f}%**")
+                        st.write("Comparison of predictions and correct labels:", merged_df)
+
+                        # Save the score with timestamp
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        score_entry = {
+                            "Name": user_name if user_name else "Anonymous",
+                            "Score": score,
+                            "Timestamp": timestamp
+                        }
                         
-                        st.write(f"Accuracy of predictions: **{accuracy * 100:.2f}%**")
-                        st.write("Comparison of predictions and correct labels:")
-                        st.write(merged_df)
+                        # Append score to CSV
+                        try:
+                            leaderboard_df = pd.read_csv(leaderboard_file)
+                            leaderboard_df = leaderboard_df.append(score_entry, ignore_index=True)
+                        except FileNotFoundError:
+                            leaderboard_df = pd.DataFrame([score_entry])
+                        
+                        leaderboard_df.to_csv(leaderboard_file, index=False)
+                        
+                        # Check if the score is the best
+                        best_score = leaderboard_df["Score"].max()
+                        if score == best_score:
+                            st.balloons()
+                            st.write("🎉 Congratulations! You have the highest score ever! 🎉")
+
+                        # Display leaderboard
+                        st.write("### Leaderboard")
+                        top_scores = leaderboard_df.sort_values(by="Score", ascending=False).head(10)
+                        st.write(top_scores)
                 else:
-                    st.error("Both 'PassengerId' and 'Survived' columns must be integers.")
+                    st.error("Both 'ID' and 'Predicted_Label' columns must be integers.")
             else:
-                st.error("The uploaded file must contain 'PassengerId' and 'Survived' columns.")
+                st.error("The file must contain 'ID' and 'Predicted_Label' columns.")
         except Exception as e:
             st.error(f"Error processing the file: {e}")
     else:
