@@ -2,14 +2,25 @@ import streamlit as st
 import pandas as pd
 import io
 
-# Sample correct labels for the Titanic dataset (PassengerId, label)
-# Ideally, you should read the actual dataset to create this dictionary.
-# For demonstration, let's assume some PassengerId labels.
-# This should be replaced with the actual labels from the Titanic dataset.
-correct_labels = {
-    1: 0, 2: 1, 3: 1, 4: 0, 5: 1, 6: 0, 7: 0, 8: 1, 9: 0, 10: 1,
-    # Add the full set of correct Titanic labels here
-}
+def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
+    # Generate a key from the password
+    key = generate_key(password)
+    fernet = Fernet(key)
+
+    # Read the encrypted file
+    with open(input_file, "rb") as file:
+        encrypted_data = file.read()
+
+    # Decrypt the data
+    decrypted_data = fernet.decrypt(encrypted_data)
+
+    # Convert decrypted bytes back to a DataFrame
+    from io import BytesIO
+    return pd.read_csv(BytesIO(decrypted_data))
+
+pwd = st.secrets['pwd']
+
+correct_labels = decrypt_csv("encrypted_data.csv", pwd)
 
 # Convert correct_labels to a DataFrame for comparison
 correct_df = pd.DataFrame(list(correct_labels.items()), columns=['PassengerId', 'Survived'])
