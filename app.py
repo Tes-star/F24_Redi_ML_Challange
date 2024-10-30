@@ -153,8 +153,9 @@ if uploaded_file is not None:
                             # Add last score for each user
                             best_scores['Last_Score'] = best_scores.groupby('Name')['Best_Score'].transform(lambda x: x.ffill().bfill())  # Last score for each user
 
-                            # Plotting
-                            plt.figure(figsize=(16, 10), dpi=120)  # Increased size and DPI
+                            # Clear previous figure
+                            plt.clf()  # Clear the current figure before plotting
+                            plt.figure(figsize=(16, 10))  # Increased size and DPI
                             sns.set(style="whitegrid")  # Set background style
                             palette = sns.color_palette("husl", len(best_scores['Name'].unique()))  # Unique palette
 
@@ -186,7 +187,7 @@ if uploaded_file is not None:
                             plt.tight_layout()
 
                             # Render the plot in Streamlit
-                            st.pyplot(plt, clear_figure=True)  # Clear figure after rendering to prevent overlapping on reruns
+                            st.pyplot(clear_figure=True)  # Clear figure after rendering to prevent overlapping on reruns
 
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
@@ -198,6 +199,3 @@ if uploaded_file is not None:
         st.error("Could not detect a valid delimiter. Please ensure the file is correctly formatted.")
 else:
     st.info("Awaiting file upload...")
-
-# Display the leaderboard at the top
-display_leaderboard()
