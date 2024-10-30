@@ -186,7 +186,7 @@ if uploaded_file is not None:
                             plt.tight_layout()
 
                             # Render the plot in Streamlit
-                            st.pyplot(plt)
+                            st.pyplot(plt, clear_figure=True)  # Clear figure after rendering to prevent overlapping on reruns
 
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
