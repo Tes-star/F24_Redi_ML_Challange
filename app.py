@@ -6,7 +6,8 @@ import base64
 import hashlib
 import io
 from datetime import datetime
-import matplotlib.pyplot as plt  # Importing matplotlib for plotting
+import matplotlib.pyplot as plt
+import seaborn as sns  # Importing seaborn for enhanced visualizations
 
 # Generate a 32-byte key for Fernet encryption from the password
 def generate_key(password: str) -> bytes:
@@ -41,10 +42,7 @@ leaderboard_file = "leaderboard.csv"
 
 # Display title and instructions
 st.title("Prediction Evaluation for BAKKI Project")
-st.write("""
-Upload a CSV with two columns: ID and Label. 
-Ensure the file includes all required IDs, without any missing IDs.
-""")
+st.write("""Upload a CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
 st.write("A sample file named example_prediction.csv is provided for guidance.")
 
 # File uploader
@@ -58,7 +56,7 @@ def display_leaderboard():
         st.write("### Leaderboard")
         st.write(
             leaderboard_df.style.highlight_max(subset=['Score'], color='yellow')  # Highlight max values in 'Score' column
-            .background_gradient(cmap="Greens")              # Use 'Greens' color map for background gradient
+            .background_gradient(cmap="Greens")  # Use 'Greens' color map for background gradient
         )
         return leaderboard_df  # Return the leaderboard DataFrame for further processing
     except FileNotFoundError:
@@ -88,8 +86,8 @@ if uploaded_file is not None:
 
                         # Calculate F1 score
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
-                        st.write(f"Prediction f1_score(average='macro') **{score*100:.2f}%**")
-                            
+                        st.write(f"Prediction f1_score(average='macro') **{score * 100:.2f}%**")
+                        
                         # Check if the score is better than 65%
                         if score < 0.65:
                             st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
@@ -148,17 +146,35 @@ if uploaded_file is not None:
                             # Filter out anonymized names if needed
                             best_scores = best_scores[best_scores['Name'] != 'anonym']  # Adjust as needed
 
-                            # Plotting
-                            plt.figure(figsize=(10, 6))
-                            for name in best_scores['Name'].unique():
-                                user_data = best_scores[best_scores['Name'] == name]
-                                plt.plot(user_data['Timestamp'], user_data['Best_Score'], marker='o', label=name)
+                            # Calculate personal best for each user
+                            best_scores['Personal_Best'] = best_scores.groupby('Name')['Best_Score'].cummax()
 
-                            plt.title('Best Scores Over Time')
-                            plt.xlabel('Timestamp (Rounded to Hour)')
-                            plt.ylabel('Best Score')
+                            # Plotting
+                            plt.figure(figsize=(14, 8))
+                            sns.set(style="whitegrid")  # Set background style
+                            palette = sns.color_palette("husl", len(best_scores['Name'].unique()))  # Unique palette
+
+                            # Plotting the personal best scores
+                            sns.lineplot(data=best_scores, x='Timestamp', y='Personal_Best', hue='Name', palette=palette, linewidth=2)
+
+                            # Draw the baseline at y=0.65
+                            plt.axhline(y=0.65, color='black', linestyle='--', linewidth=0.5, label='Baseline')
+
+                            plt.title('Personal Best Scores Over Time', fontsize=18, fontweight='bold')
+                            plt.xlabel('Timestamp (Rounded to Hour)', fontsize=14)
+                            plt.ylabel('Personal Best Score', fontsize=14)
+
+                            # Set x-ticks for every hour
                             plt.xticks(rotation=45)
-                            plt.legend()
+                            plt.yticks(fontsize=12)
+
+                            # Set y limits
+                            plt.ylim(0, 1.04)
+
+                            # Add y-gridlines every 0.05
+                            plt.yticks(np.arange(0.0, 1.04, 0.05))
+                            plt.grid(visible=True, linestyle='--', linewidth=0.2)  # Style for grid
+                            plt.legend(title='Names', fontsize=12, title_fontsize='13', loc='upper left', bbox_to_anchor=(1, 1))
                             plt.tight_layout()
 
                             # Render the plot in Streamlit
