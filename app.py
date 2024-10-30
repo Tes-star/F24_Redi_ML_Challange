@@ -91,23 +91,27 @@ if uploaded_file is not None:
                         try:
                             leaderboard_df = pd.read_csv(leaderboard_file)
                             leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
+                            
+                            # Ensure the Score column is of type float
+                            leaderboard_df['Score'] = leaderboard_df['Score'].astype(float)
+                            
                             # Drop any rows with NaN scores if necessary
                             leaderboard_df.dropna(subset=['Score'], inplace=True)
                         except FileNotFoundError:
                             leaderboard_df = pd.DataFrame([score_entry])
-                        
+
+                        # Save the updated leaderboard
                         leaderboard_df.to_csv(leaderboard_file, index=False)
-                        
+
                         # Check if the score is better than 65%
                         if score < 0.65:
                             st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
-                        
+
                         # Check if the score is the best
                         best_score = leaderboard_df["Score"].max()
                         if score == best_score:
                             st.balloons()
                             st.write("🎉 Congratulations! You have the highest score ever! 🎉")
-
                         # Display leaderboard with nice formatting
                         st.write("### Leaderboard")
                         st.write(leaderboard_df.style.highlight_max(axis=0).background_gradient(cmap="Blues"))
