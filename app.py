@@ -166,7 +166,7 @@ if uploaded_file is not None:
                             plt.legend(title='Names', fontsize=14, title_fontsize='15', loc='upper left', bbox_to_anchor=(1, 1))
                             plt.tight_layout()
 
-                            st.pyplot(clear_figure=True)  
+                            st.pyplot()  
 
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
