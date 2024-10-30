@@ -11,6 +11,9 @@ from datetime import datetime
 def generate_key(password: str) -> bytes:
     return base64.urlsafe_b64encode(hashlib.sha256(password.encode()).digest())
 
+
+
+
 # Decrypt the CSV file with the correct labels
 def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
     key = generate_key(password)
@@ -71,10 +74,17 @@ if uploaded_file is not None:
                         st.write("Your format (sample):", df.head())
                     else:
                         st.success("CSV format is correct!")
-                        
+                                                
+                        # Merge prediction DataFrame with correct labels
                         merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
-                        score = f1_score(merged_df['Label_pred'], merged_df['Correct_Label_true'], average='weighted')
-                        
+
+                        # Display the columns in the merged DataFrame for debugging
+                        st.write("Merged columns:", merged_df.columns.tolist())
+
+                        # Calculate F1 score with the appropriate label column
+                        score = f1_score(merged_df['Label_pred'], merged_df['Label'], average='weighted')
+
+                        # Display the score
                         st.write(f"Prediction accuracy: **{score:.3f}%**")
                         st.write("Comparison of predictions and correct labels:", merged_df)
 
