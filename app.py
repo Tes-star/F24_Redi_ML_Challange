@@ -128,13 +128,12 @@ if uploaded_file is not None:
                         leaderboard_df = display_leaderboard()  # Get the updated leaderboard
                         
                         if not leaderboard_df.empty:
-                            # Convert 'Timestamp' to datetime
-                            leaderboard_df['Timestamp'] = pd.to_datetime(leaderboard_df['Timestamp'])
+                            # Convert 'Timestamp' to datetime and round to the nearest hour
+                            leaderboard_df['Timestamp'] = pd.to_datetime(leaderboard_df['Timestamp']).dt.floor('H')
 
-                            # Group by Name and get the maximum score until now
-                            best_scores = leaderboard_df.groupby('Name').agg(
-                                Best_Score=('Score', 'max'),
-                                Last_Timestamp=('Timestamp', 'max')
+                            # Group by Name and Timestamp to get the latest score for each hour
+                            best_scores = leaderboard_df.groupby(['Name', 'Timestamp']).agg(
+                                Best_Score=('Score', 'max')
                             ).reset_index()
 
                             # Filter out anonymized names if needed
@@ -144,10 +143,10 @@ if uploaded_file is not None:
                             plt.figure(figsize=(10, 6))
                             for name in best_scores['Name'].unique():
                                 user_data = best_scores[best_scores['Name'] == name]
-                                plt.plot(user_data['Last_Timestamp'], user_data['Best_Score'], marker='o', label=name)
+                                plt.plot(user_data['Timestamp'], user_data['Best_Score'], marker='o', label=name)
 
                             plt.title('Best Scores Over Time')
-                            plt.xlabel('Timestamp')
+                            plt.xlabel('Timestamp (Rounded to Hour)')
                             plt.ylabel('Best Score')
                             plt.xticks(rotation=45)
                             plt.legend()
