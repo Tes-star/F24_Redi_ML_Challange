@@ -46,9 +46,6 @@ Ensure the file includes all required IDs, without any missing IDs.
 """)
 st.write("A sample file named `example_prediction.csv` is provided for guidance.")
 
-# Input for user name
-user_name = st.text_input("Enter your name (optional):")
-
 # File uploader
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
@@ -86,27 +83,33 @@ if uploaded_file is not None:
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
                         st.write(f"Prediction f1_score(average='macro') **{score*100:.2f}%**")
 
+                        # Ask for user's name
+                        user_name = st.text_input("Enter your name for the leaderboard:", "")
+
                         # Add to leaderboard button
-                        if st.button("Add to Leaderboard"):
-                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            score_entry = {
-                                "Name": user_name if user_name else "Anonymous",
-                                "Score": score,
-                                "Timestamp": timestamp
-                            }
-                            
-                            # Append score to leaderboard
-                            try:
-                                leaderboard_df = pd.read_csv(leaderboard_file)
-                                leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
-                            except FileNotFoundError:
-                                leaderboard_df = pd.DataFrame([score_entry])
+                        if st.button("Subscribe to Leaderboard"):
+                            if user_name:  # Check if user_name is provided
+                                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                score_entry = {
+                                    "Name": user_name,
+                                    "Score": score,
+                                    "Timestamp": timestamp
+                                }
+                                
+                                # Append score to leaderboard
+                                try:
+                                    leaderboard_df = pd.read_csv(leaderboard_file)
+                                    leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
+                                except FileNotFoundError:
+                                    leaderboard_df = pd.DataFrame([score_entry])
 
-                            # Save the updated leaderboard
-                            leaderboard_df.to_csv(leaderboard_file, index=False)
+                                # Save the updated leaderboard
+                                leaderboard_df.to_csv(leaderboard_file, index=False)
 
-                            st.success("Your score has been added to the leaderboard!")
-                            display_leaderboard()
+                                st.success("Your score has been added to the leaderboard!")
+                                display_leaderboard()
+                            else:
+                                st.warning("Please enter your name to subscribe to the leaderboard.")
                         else:
                             st.info("Press the button to add your score to the leaderboard.")
 
