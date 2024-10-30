@@ -41,7 +41,7 @@ leaderboard_file = "leaderboard.csv"
 # Display title and instructions
 st.title("Prediction Evaluation for BAKKI Project")
 st.write("""
-Upload a CSV with two columns: `ID` and `Predicted_Label`. 
+Upload a CSV with two columns: `ID` and `Label`. 
 Ensure the file includes all required IDs, without any missing IDs.
 """)
 st.write("A sample file named `example_prediction.csv` is provided for guidance.")
@@ -61,8 +61,8 @@ if uploaded_file is not None:
             df = pd.read_csv(uploaded_file, delimiter=delimiter)
             st.write("Preview of uploaded file:", df.head())
             
-            if set(['ID', 'Predicted_Label']).issubset(df.columns):
-                if df['ID'].dtype == 'int64' and df['Predicted_Label'].dtype == 'int64':
+            if set(['ID', 'Label']).issubset(df.columns):
+                if df['ID'].dtype == 'int64' and df['Label'].dtype == 'int64':
                     
                     # Check IDs are the same and in the same order
                     if list(df['ID']) != list(correct_labels['ID']):
@@ -73,7 +73,7 @@ if uploaded_file is not None:
                         st.success("CSV format is correct!")
                         
                         merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
-                        score = f1_score(merged_df['Predicted_Label_pred'], merged_df['Correct_Label_true'], average='weighted')
+                        score = f1_score(merged_df['Label_pred'], merged_df['Correct_Label_true'], average='weighted')
                         
                         st.write(f"Prediction accuracy: **{score:.3f}%**")
                         st.write("Comparison of predictions and correct labels:", merged_df)
@@ -106,9 +106,9 @@ if uploaded_file is not None:
                         top_scores = leaderboard_df.sort_values(by="Score", ascending=False).head(10)
                         st.write(top_scores)
                 else:
-                    st.error("Both 'ID' and 'Predicted_Label' columns must be integers.")
+                    st.error("Both 'ID' and 'Label' columns must be integers.")
             else:
-                st.error("The file must contain 'ID' and 'Predicted_Label' columns.")
+                st.error("The file must contain 'ID' and 'Label' columns.")
         except Exception as e:
             st.error(f"Error processing the file: {e}")
     else:
