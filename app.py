@@ -82,10 +82,10 @@ if uploaded_file is not None:
                         st.write("Merged columns:", merged_df.columns.tolist())
 
                         # Calculate F1 score using the correct labels
-                        score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='weighted')
+                        score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
 
                         # Display the score
-                        st.write(f"Prediction accuracy: **{score:.3f}%**")
+                        st.write(f"Prediction f1_score(average='macro') **{score:.3f}%**")
 
                         st.write("Comparison of predictions and correct labels:", merged_df)
 
