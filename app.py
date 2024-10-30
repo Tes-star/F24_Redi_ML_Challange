@@ -4,6 +4,7 @@ import pandas as pd
 from cryptography.fernet import Fernet
 import base64
 import hashlib
+import numpy as np
 import io
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
