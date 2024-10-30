@@ -32,7 +32,7 @@ def detect_delimiter(uploaded_file):
 # Streamlit app
 st.title("Titanic Predictions Evaluation")
 
-st.write(st.secrets)
+
 # Instructions
 st.write("""
 Upload a CSV file with two columns: `PassengerId` and `Survived`. 
