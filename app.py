@@ -49,11 +49,6 @@ st.write("A sample file named `example_prediction.csv` is provided for guidance.
 # Input for user name
 user_name = st.text_input("Enter your name (optional):")
 
-# Button for confirming anonymity
-if st.button("Confirm Anonymity"):
-    if user_name == "":
-        user_name = "Anonymous"
-
 # File uploader
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
@@ -70,8 +65,8 @@ if uploaded_file is not None:
                     # Check IDs are the same and in the same order
                     if list(df['ID']) != list(correct_labels['ID']):
                         st.error("Mismatch in `ID` column. Ensure IDs match exactly and are in the same order.")
-                        st.write("Expected format (sample):", correct_labels.head())
-                        st.write("Your format (sample):", df.head())
+                        st.text("Expected format (sample):", correct_labels.head())
+                        st.text("Your format (sample):", df.head())
                     else:
                         st.success("CSV format is correct!")
                         
@@ -87,7 +82,7 @@ if uploaded_file is not None:
                         # Save the score with timestamp
                         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         score_entry = {
-                            "Name": user_name,
+                            "Name": user_name if user_name else "Anonymous",
                             "Score": score,
                             "Timestamp": timestamp
                         }
@@ -101,16 +96,23 @@ if uploaded_file is not None:
                         
                         leaderboard_df.to_csv(leaderboard_file, index=False)
                         
+                        # Check if the score is better than 65%
+                        if score < 0.65:
+                            st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
+                        
                         # Check if the score is the best
                         best_score = leaderboard_df["Score"].max()
                         if score == best_score:
                             st.balloons()
                             st.write("🎉 Congratulations! You have the highest score ever! 🎉")
 
-                        # Display leaderboard
+                        # Display leaderboard with nice formatting
                         st.write("### Leaderboard")
-                        top_scores = leaderboard_df.sort_values(by="Score", ascending=False).head(10)
-                        st.write(top_scores)
+                        st.write(leaderboard_df.style.highlight_max(axis=0).background_gradient(cmap="Blues"))
+                        
+                        # Optionally display top scores in a sidebar
+                        st.sidebar.write("### Top Scores")
+                        st.sidebar.write(leaderboard_df.sort_values(by="Score", ascending=False).head(10).style.highlight_max(axis=0).background_gradient(cmap="Blues"))
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
             else:
