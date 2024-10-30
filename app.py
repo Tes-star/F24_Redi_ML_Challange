@@ -35,7 +35,7 @@ def detect_delimiter(uploaded_file) -> str:
             continue
     return None
 
-# Leaderboard data
+# Leaderboard file
 leaderboard_file = "leaderboard.csv"
 
 # Display title and instructions
@@ -52,6 +52,17 @@ user_name = st.text_input("Enter your name (optional):")
 # File uploader
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
+# Leaderboard display
+def display_leaderboard():
+    try:
+        leaderboard_df = pd.read_csv(leaderboard_file)
+        leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
+        st.write("### Leaderboard")
+        st.write(leaderboard_df.style.highlight_max(axis=0).background_gradient(cmap="Blues"))
+    except FileNotFoundError:
+        st.write("### Leaderboard")
+        st.write("No entries yet.")
+
 # Process uploaded file
 if uploaded_file is not None:
     delimiter = detect_delimiter(uploaded_file)
@@ -65,60 +76,40 @@ if uploaded_file is not None:
                     # Check IDs are the same and in the same order
                     if list(df['ID']) != list(correct_labels['ID']):
                         st.error("Mismatch in `ID` column. Ensure IDs match exactly and are in the same order.")
-                        st.text("Expected format (sample):", correct_labels.head())
-                        st.text("Your format (sample):", df.head())
                     else:
                         st.success("CSV format is correct!")
-                        
+
                         # Merge prediction DataFrame with correct labels
                         merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
 
-                        # Calculate F1 score using the correct labels
+                        # Calculate F1 score
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
-
-                        # Display the score
                         st.write(f"Prediction f1_score(average='macro') **{score*100:.2f}%**")
 
-                        # Save the score with timestamp
-                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        score_entry = {
-                            "Name": user_name if user_name else "Anonymous",
-                            "Score": score,
-                            "Timestamp": timestamp
-                        }
-                        
-                        # Append score to leaderboard
-                        try:
-                            leaderboard_df = pd.read_csv(leaderboard_file)
-                            leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
+                        # Add to leaderboard button
+                        if st.button("Add to Leaderboard"):
+                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            score_entry = {
+                                "Name": user_name if user_name else "Anonymous",
+                                "Score": score,
+                                "Timestamp": timestamp
+                            }
                             
-                            # Ensure the Score column is of type float
-                            leaderboard_df['Score'] = leaderboard_df['Score'].astype(float)
-                            
-                            # Drop any rows with NaN scores if necessary
-                            leaderboard_df.dropna(subset=['Score'], inplace=True)
-                        except FileNotFoundError:
-                            leaderboard_df = pd.DataFrame([score_entry])
+                            # Append score to leaderboard
+                            try:
+                                leaderboard_df = pd.read_csv(leaderboard_file)
+                                leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
+                            except FileNotFoundError:
+                                leaderboard_df = pd.DataFrame([score_entry])
 
-                        # Save the updated leaderboard
-                        leaderboard_df.to_csv(leaderboard_file, index=False)
+                            # Save the updated leaderboard
+                            leaderboard_df.to_csv(leaderboard_file, index=False)
 
-                        # Check if the score is better than 65%
-                        if score < 0.65:
-                            st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
+                            st.success("Your score has been added to the leaderboard!")
+                            display_leaderboard()
+                        else:
+                            st.info("Press the button to add your score to the leaderboard.")
 
-                        # Check if the score is the best
-                        best_score = leaderboard_df["Score"].max()
-                        if score == best_score:
-                            st.balloons()
-                            st.write("🎉 Congratulations! You have the highest score ever! 🎉")
-                        # Display leaderboard with nice formatting
-                        st.write("### Leaderboard")
-                        st.write(leaderboard_df.style.highlight_max(axis=0).background_gradient(cmap="Blues"))
-                        
-                        # Optionally display top scores in a sidebar
-                        st.sidebar.write("### Top Scores")
-                        st.sidebar.write(leaderboard_df.sort_values(by="Score", ascending=False).head(10).style.highlight_max(axis=0).background_gradient(cmap="Blues"))
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
             else:
@@ -129,3 +120,6 @@ if uploaded_file is not None:
         st.error("Could not detect a valid delimiter. Please ensure the file is correctly formatted.")
 else:
     st.info("Awaiting file upload...")
+
+# Display the leaderboard at the top
+display_leaderboard()
