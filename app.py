@@ -6,6 +6,7 @@ import base64
 import hashlib
 import io
 from datetime import datetime
+import matplotlib.pyplot as plt  # Importing matplotlib for plotting
 
 # Generate a 32-byte key for Fernet encryption from the password
 def generate_key(password: str) -> bytes:
@@ -56,12 +57,14 @@ def display_leaderboard():
         leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
         st.write("### Leaderboard")
         st.write(
-        leaderboard_df.style.highlight_max(subset=['Score'], color='yellow')  # Highlight max values in 'Score' column
-        .background_gradient(cmap="Greens")              # Use 'Greens' color map for background gradient
-    )
+            leaderboard_df.style.highlight_max(subset=['Score'], color='yellow')  # Highlight max values in 'Score' column
+            .background_gradient(cmap="Greens")              # Use 'Greens' color map for background gradient
+        )
+        return leaderboard_df  # Return the leaderboard DataFrame for further processing
     except FileNotFoundError:
         st.write("### Leaderboard")
         st.write("No entries yet.")
+        return pd.DataFrame()  # Return an empty DataFrame if no file found
 
 # Process uploaded file
 if uploaded_file is not None:
@@ -90,7 +93,6 @@ if uploaded_file is not None:
                         # Check if the score is better than 65%
                         if score < 0.65:
                             st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
- 
 
                         # Ask for user's name
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
@@ -121,6 +123,38 @@ if uploaded_file is not None:
                                 st.warning("Please enter your name to subscribe to the leaderboard.")
                         else:
                             st.info("Press the button to add your score to the leaderboard.")
+
+                        # Display the graph
+                        leaderboard_df = display_leaderboard()  # Get the updated leaderboard
+                        
+                        if not leaderboard_df.empty:
+                            # Convert 'Timestamp' to datetime
+                            leaderboard_df['Timestamp'] = pd.to_datetime(leaderboard_df['Timestamp'])
+
+                            # Group by Name and get the maximum score until now
+                            best_scores = leaderboard_df.groupby('Name').agg(
+                                Best_Score=('Score', 'max'),
+                                Last_Timestamp=('Timestamp', 'max')
+                            ).reset_index()
+
+                            # Filter out anonymized names if needed
+                            best_scores = best_scores[best_scores['Name'] != 'anonym']  # Adjust as needed
+
+                            # Plotting
+                            plt.figure(figsize=(10, 6))
+                            for name in best_scores['Name'].unique():
+                                user_data = best_scores[best_scores['Name'] == name]
+                                plt.plot(user_data['Last_Timestamp'], user_data['Best_Score'], marker='o', label=name)
+
+                            plt.title('Best Scores Over Time')
+                            plt.xlabel('Timestamp')
+                            plt.ylabel('Best Score')
+                            plt.xticks(rotation=45)
+                            plt.legend()
+                            plt.tight_layout()
+
+                            # Render the plot in Streamlit
+                            st.pyplot(plt)
 
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
