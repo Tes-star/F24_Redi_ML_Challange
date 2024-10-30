@@ -75,6 +75,7 @@ if uploaded_file is not None:
                         st.error("Mismatch in `ID` column. Ensure IDs match exactly and are in the same order.")
                     else:
                         st.success("CSV format is correct!")
+                        st.divider()
 
                         # Merge prediction DataFrame with correct labels
                         merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
@@ -82,6 +83,11 @@ if uploaded_file is not None:
                         # Calculate F1 score
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
                         st.write(f"Prediction f1_score(average='macro') **{score*100:.2f}%**")
+                            
+                        # Check if the score is better than 65%
+                        if score < 0.65:
+                            st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
+ 
 
                         # Ask for user's name
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
@@ -107,7 +113,7 @@ if uploaded_file is not None:
                                 leaderboard_df.to_csv(leaderboard_file, index=False)
 
                                 st.success("Your score has been added to the leaderboard!")
-                                display_leaderboard()
+                                
                             else:
                                 st.warning("Please enter your name to subscribe to the leaderboard.")
                         else:
