@@ -11,9 +11,6 @@ from datetime import datetime
 def generate_key(password: str) -> bytes:
     return base64.urlsafe_b64encode(hashlib.sha256(password.encode()).digest())
 
-
-
-
 # Decrypt the CSV file with the correct labels
 def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
     key = generate_key(password)
@@ -52,6 +49,11 @@ st.write("A sample file named `example_prediction.csv` is provided for guidance.
 # Input for user name
 user_name = st.text_input("Enter your name (optional):")
 
+# Button for confirming anonymity
+if st.button("Confirm Anonymity"):
+    if user_name == "":
+        user_name = "Anonymous"
+
 # File uploader
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
@@ -59,10 +61,8 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 if uploaded_file is not None:
     delimiter = detect_delimiter(uploaded_file)
     if delimiter:
-        st.write(f"Detected delimiter: `{delimiter}`")
         try:
             df = pd.read_csv(uploaded_file, delimiter=delimiter)
-            st.write("Preview of uploaded file:", df.head())
             
             if set(['ID', 'Label']).issubset(df.columns):
                 if df['ID'].dtype == 'int64' and df['Label'].dtype == 'int64':
@@ -74,12 +74,9 @@ if uploaded_file is not None:
                         st.write("Your format (sample):", df.head())
                     else:
                         st.success("CSV format is correct!")
-                                                
+                        
                         # Merge prediction DataFrame with correct labels
                         merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
-
-                        # Display the columns in the merged DataFrame for debugging
-                        st.write("Merged columns:", merged_df.columns.tolist())
 
                         # Calculate F1 score using the correct labels
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
@@ -87,12 +84,10 @@ if uploaded_file is not None:
                         # Display the score
                         st.write(f"Prediction f1_score(average='macro') **{score:.3f}%**")
 
-                        st.write("Comparison of predictions and correct labels:", merged_df)
-
                         # Save the score with timestamp
                         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         score_entry = {
-                            "Name": user_name if user_name else "Anonymous",
+                            "Name": user_name,
                             "Score": score,
                             "Timestamp": timestamp
                         }
@@ -100,7 +95,7 @@ if uploaded_file is not None:
                         # Append score to leaderboard
                         try:
                             leaderboard_df = pd.read_csv(leaderboard_file)
-                            leaderboard_df = leaderboard_df.append(score_entry, ignore_index=True)
+                            leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
                         except FileNotFoundError:
                             leaderboard_df = pd.DataFrame([score_entry])
                         
