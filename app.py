@@ -1,3 +1,4 @@
+from sklearn.metrics import f1_score
 import streamlit as st
 import pandas as pd
 from cryptography.fernet import Fernet
@@ -21,7 +22,6 @@ def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
 # Load correct labels
 pwd = st.secrets['pwd']
 correct_labels = decrypt_csv("encrypted_data.csv", pwd)
-correct_df = pd.DataFrame(list(correct_labels.items()), columns=['ID', 'Correct_Label'])
 
 # Detect delimiter in uploaded file
 def detect_delimiter(uploaded_file) -> str:
@@ -44,6 +44,7 @@ st.write("""
 Upload a CSV with two columns: `ID` and `Predicted_Label`. 
 Ensure the file includes all required IDs, without any missing IDs.
 """)
+st.write("A sample file named `example_prediction.csv` is provided for guidance.")
 
 # Input for user name
 user_name = st.text_input("Enter your name (optional):")
@@ -62,21 +63,19 @@ if uploaded_file is not None:
             
             if set(['ID', 'Predicted_Label']).issubset(df.columns):
                 if df['ID'].dtype == 'int64' and df['Predicted_Label'].dtype == 'int64':
-                    st.success("CSV format is correct!")
                     
-                    missing_ids = set(correct_df['ID']) - set(df['ID'])
-                    extra_ids = set(df['ID']) - set(correct_df['ID'])
-
-                    if missing_ids:
-                        st.error(f"Missing IDs: {missing_ids}")
-                    elif extra_ids:
-                        st.error(f"Unexpected extra IDs found: {extra_ids}")
+                    # Check IDs are the same and in the same order
+                    if list(df['ID']) != list(correct_labels['ID']):
+                        st.error("Mismatch in `ID` column. Ensure IDs match exactly and are in the same order.")
+                        st.write("Expected format (sample):", correct_labels.head())
+                        st.write("Your format (sample):", df.head())
                     else:
-                        merged_df = pd.merge(df, correct_df, on="ID", suffixes=('_pred', '_true'))
-                        accuracy = (merged_df['Predicted_Label_pred'] == merged_df['Correct_Label_true']).mean()
-                        score = accuracy * 100
+                        st.success("CSV format is correct!")
                         
-                        st.write(f"Prediction accuracy: **{score:.2f}%**")
+                        merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
+                        score = f1_score(merged_df['Predicted_Label_pred'], merged_df['Correct_Label_true'], average='weighted')
+                        
+                        st.write(f"Prediction accuracy: **{score:.3f}%**")
                         st.write("Comparison of predictions and correct labels:", merged_df)
 
                         # Save the score with timestamp
@@ -87,7 +86,7 @@ if uploaded_file is not None:
                             "Timestamp": timestamp
                         }
                         
-                        # Append score to CSV
+                        # Append score to leaderboard
                         try:
                             leaderboard_df = pd.read_csv(leaderboard_file)
                             leaderboard_df = leaderboard_df.append(score_entry, ignore_index=True)
