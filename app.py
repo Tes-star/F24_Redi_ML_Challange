@@ -55,7 +55,7 @@ def display_leaderboard():
         leaderboard_df = pd.read_csv(leaderboard_file)
         leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
         st.write("### Leaderboard")
-        st.write(leaderboard_df.style.highlight_max(axis=0).background_gradient(cmap="Blues"))
+        st.write(leaderboard_df.style.highlight_max(axis=0,subset=['Score']).background_gradient(cmap="Green"))
     except FileNotFoundError:
         st.write("### Leaderboard")
         st.write("No entries yet.")
@@ -93,7 +93,7 @@ if uploaded_file is not None:
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
 
                         # Add to leaderboard button
-                        if st.button("Subscribe to Leaderboard"):
+                        if st.button("Add to Leaderboard"):
                             if user_name:  # Check if user_name is provided
                                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                 score_entry = {
