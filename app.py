@@ -55,7 +55,7 @@ def display_leaderboard():
         leaderboard_df = pd.read_csv(leaderboard_file)
         leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
         st.write("### Leaderboard")
-        st.write(leaderboard_df.style.highlight_max(axis=0,subset=['Score']).background_gradient(cmap="Green"))
+        st.write(leaderboard_df.style.highlight_max(subset=['Score']).background_gradient(cmap="Green"))
     except FileNotFoundError:
         st.write("### Leaderboard")
         st.write("No entries yet.")
