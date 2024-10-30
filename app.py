@@ -5,6 +5,7 @@ from cryptography.fernet import Fernet
 import base64
 import hashlib
 import io
+import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns  # Importing seaborn for enhanced visualizations
