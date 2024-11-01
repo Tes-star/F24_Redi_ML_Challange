@@ -42,7 +42,11 @@ correct_labels = decrypt_csv("encrypted_data.csv", pwd)
 
 # Connect to Google Sheets
 conn = st.connection("gsheets", type=GSheetsConnection)
-leaderboard_df = conn.read()
+leaderboard_df = conn.read(
+    worksheet="data",
+    ttl="10m",
+    usecols=[0, 1, 2],
+)
 
 # Display leaderboard
 def display_leaderboard():
