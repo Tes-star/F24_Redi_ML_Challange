@@ -106,7 +106,7 @@ if uploaded_file is not None:
                                     "Timestamp": timestamp
                                 }
                                 
-                                # Append score to leaderboard if it's a new high score
+                               # Append score to leaderboard if it's a new high score
                                 try:
                                     leaderboard_df = pd.read_csv(leaderboard_file)
                                     # Check if user already exists in the leaderboard
@@ -117,10 +117,13 @@ if uploaded_file is not None:
                                         if score > current_best_score:
                                             leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'] = score
                                             leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Timestamp'] = timestamp
+                                            st.balloons()  # Trigger balloons for new personal best
                                     else:
                                         leaderboard_df = pd.concat([leaderboard_df, pd.DataFrame([score_entry])], ignore_index=True)
+                                        st.balloons()  # Trigger balloons for new user score entry
                                 except FileNotFoundError:
                                     leaderboard_df = pd.DataFrame([score_entry])
+                                    st.balloons()  # Trigger balloons for first leaderboard entry
 
                                 # Save the updated leaderboard
                                 leaderboard_df.to_csv(leaderboard_file, index=False)
