@@ -10,6 +10,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from streamlit_gsheets import GSheetsConnection
 
+# Detect delimiter in uploaded file
+def detect_delimiter(uploaded_file) -> str:
+    sample = uploaded_file.read(1024).decode()
+    uploaded_file.seek(0)
+    for delimiter in [',', ';', '\t', '|']:
+        try:
+            if pd.read_csv(io.StringIO(sample), delimiter=delimiter, nrows=5).shape[1] > 1:
+                return delimiter
+        except:
+            continue
+    return None
+
+
+
 # Generate a 32-byte key for Fernet encryption from the password
 def generate_key(password: str) -> bytes:
     return base64.urlsafe_b64encode(hashlib.sha256(password.encode()).digest())
