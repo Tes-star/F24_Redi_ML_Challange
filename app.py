@@ -75,8 +75,9 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 # Display leaderboard from Google Sheets
 def display_leaderboard():
     try:
-        leaderboard_data = sheet.get_all_records()  # Retrieve data as list of dictionaries
+        leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])  # Retrieve data as list of dictionaries
         leaderboard_df = pd.DataFrame(leaderboard_data)
+        leaderboard_df['Score'].str.replace(',', '.').astype(float)
         leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
         st.write("### Leaderboard")
         st.write(
@@ -127,7 +128,7 @@ if uploaded_file is not None:
                                 score_entry = [user_name, score, timestamp]
 
                                 # Check if user already exists and update score if necessary
-                                leaderboard_data = sheet.get_all_records()
+                                leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])
                                 leaderboard_df = pd.DataFrame(leaderboard_data)
                                 if user_name in leaderboard_df['Name'].values:
                                     current_best_score = leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'].max()
