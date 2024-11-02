@@ -67,6 +67,7 @@ def detect_delimiter(uploaded_file) -> str:
 st.title("Preproject Score Evaluation")
 st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
 st.write("A sample file named example_prediction.csv was provided for guidance.")
+st.write("### Leaderboard")
 
 # Display leaderboard placeholder
 leaderboard_placeholder = st.empty()
