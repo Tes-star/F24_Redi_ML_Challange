@@ -81,7 +81,8 @@ def display_leaderboard():
         leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
         st.write("### Leaderboard")
         st.write(
-            leaderboard_df.background_gradient(cmap="Greens")
+            leaderboard_df.style.highlight_max(subset=['Score'], color='green')
+            .background_gradient(cmap="Greens")
         )
         return leaderboard_df
     except Exception as e:
