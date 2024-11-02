@@ -154,13 +154,7 @@ if uploaded_file is not None:
                         # Display the graph
                         leaderboard_df = display_leaderboard()
                         
-                        if not leaderboard_df.empty:
-                            leaderboard_df['Timestamp'] = pd.to_datetime(leaderboard_df['Timestamp']).dt.floor('H')
-                            best_scores = leaderboard_df.groupby(['Name', 'Timestamp']).agg(
-                                Best_Score=('Score', 'max')
-                            ).reset_index()
-                            best_scores['Personal_Best'] = best_scores.groupby('Name')['Best_Score'].cummax()
-                            best_scores['Last_Score'] = best_scores.groupby('Name')['Best_Score'].transform(lambda x: x.ffill().bfill())
+                        
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
             else:
