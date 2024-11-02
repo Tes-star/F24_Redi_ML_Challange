@@ -64,28 +64,31 @@ def detect_delimiter(uploaded_file) -> str:
     return None
 
 # Display title and instructions
-st.title("Prediction Evaluation for BAKKI Project")
-st.write("""Upload a CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
-st.write("A sample file named example_prediction.csv is provided for guidance.")
+st.title("Preproject Score Evaluation")
+st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
+st.write("A sample file named example_prediction.csv was provided for guidance.")
 
 # Display leaderboard placeholder
 leaderboard_placeholder = st.empty()
 
 # Function to display leaderboard from Google Sheets
 def display_leaderboard():
+    leaderboard_placeholder.write("### Leaderboard")  # Set the header before attempting to read data
     try:
         leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])  # Retrieve data as list of dictionaries
-        leaderboard_df = pd.DataFrame(leaderboard_data)
-        leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
-        leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
-        leaderboard_placeholder.write("### Leaderboard")
-        leaderboard_placeholder.write(
-            leaderboard_df.style.background_gradient(cmap="Greens").highlight_max(subset=['Score'], color='green')
-        )
+        if leaderboard_data:  # Check if there's data to display
+            leaderboard_df = pd.DataFrame(leaderboard_data)
+            leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
+            leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
+            leaderboard_placeholder.write(
+                leaderboard_df.style.background_gradient(cmap="Greens").highlight_max(subset=['Score'], color='green')
+            )
+        else:
+            leaderboard_placeholder.write("No entries yet.")
         return leaderboard_df
     except Exception as e:
-        leaderboard_placeholder.write("### Leaderboard")
-        leaderboard_placeholder.write("No entries yet.")
+        leaderboard_placeholder.write("Error fetching leaderboard data.")
+        st.error(str(e))
         return pd.DataFrame()
 
 # Display initial leaderboard
