@@ -9,6 +9,7 @@ import numpy as np
 from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import json
 
 # Generate a 32-byte key for Fernet encryption from the password
 def generate_key(password: str) -> bytes:
@@ -39,6 +40,8 @@ cred={
   "client_x509_cert_url":  st.secrets['client_x509_cert_url'],
   "universe_domain":  st.secrets['universe_domain'],
 }
+with open('cred.json', 'w') as f:
+    json.dump(cred, f)
 
 
 creds = ServiceAccountCredentials.from_json_keyfile_name(cred, scope)
