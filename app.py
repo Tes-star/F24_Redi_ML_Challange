@@ -44,7 +44,7 @@ with open('cred.json', 'w') as f:
     json.dump(cred, f)
 
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(cred, scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
 sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard spreadsheet
 
