@@ -43,7 +43,6 @@ cred={
 with open('cred.json', 'w') as f:
     json.dump(cred, f)
 
-
 creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
 sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard spreadsheet
@@ -69,26 +68,31 @@ st.title("Prediction Evaluation for BAKKI Project")
 st.write("""Upload a CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
 st.write("A sample file named example_prediction.csv is provided for guidance.")
 
-# File uploader
-uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+# Display leaderboard placeholder
+leaderboard_placeholder = st.empty()
 
-# Display leaderboard from Google Sheets
+# Function to display leaderboard from Google Sheets
 def display_leaderboard():
     try:
         leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])  # Retrieve data as list of dictionaries
         leaderboard_df = pd.DataFrame(leaderboard_data)
-        leaderboard_df['Score'].str.replace(',', '.').astype(float)
+        leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
         leaderboard_df.sort_values(by="Score", ascending=False, inplace=True)
-        st.write("### Leaderboard")
-        st.write(
-                leaderboard_df.style
-        .background_gradient(subset=['Score'], cmap='Greens')
+        leaderboard_placeholder.write("### Leaderboard")
+        leaderboard_placeholder.write(
+            leaderboard_df.style.background_gradient(cmap="Greens").highlight_max(subset=['Score'], color='green')
         )
         return leaderboard_df
     except Exception as e:
-        st.write("### Leaderboard")
-        st.write("No entries yet.")
+        leaderboard_placeholder.write("### Leaderboard")
+        leaderboard_placeholder.write("No entries yet.")
         return pd.DataFrame()
+
+# Display initial leaderboard
+display_leaderboard()
+
+# File uploader
+uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
 # Process uploaded file
 if uploaded_file is not None:
@@ -131,7 +135,7 @@ if uploaded_file is not None:
                                 leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])
                                 
                                 leaderboard_df = pd.DataFrame(leaderboard_data)
-                                leaderboard_df['Score'].str.replace(',', '.').astype(float)
+                                leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
                                 if user_name in leaderboard_df['Name'].values:
                                     current_best_score = leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'].max()
                                     if score > current_best_score:
@@ -146,15 +150,14 @@ if uploaded_file is not None:
                                     st.balloons()
 
                                 st.success("Your score has been added to the leaderboard!")
+                                
+                                # Update the leaderboard display
+                                display_leaderboard()
                             else:
                                 st.warning("Please enter your name to subscribe to the leaderboard.")
                         else:
                             st.info("Press the button to add your score to the leaderboard.")
 
-                        # Display the graph
-                        leaderboard_df = display_leaderboard()
-                        
-                        
                 else:
                     st.error("Both 'ID' and 'Label' columns must be integers.")
             else:
