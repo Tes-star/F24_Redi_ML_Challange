@@ -65,8 +65,8 @@ def detect_delimiter(uploaded_file) -> str:
 
 # Display title and instructions
 st.title("Project Hotel cancelation: Score Evaluation 🏨")
-st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
-st.write("A sample file named example_prediction.csv was provided for guidance.")
+st.write("""Upload your predition CSV with two columns: 'id', 'is_canceled'. Ensure the file includes all required IDs, without any missing IDs.""")
+st.write("A sample file named sample_submission.csv was provided for guidance.")
 st.write("### Leaderboard")
 
 # Display leaderboard placeholder
@@ -105,11 +105,11 @@ if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file, delimiter=delimiter)
             
-            if set(['ID', 'Label']).issubset(df.columns):
-                if df['ID'].dtype == 'int64' and df['Label'].dtype == 'int64':
+            if set(['id', 'is_canceled']).issubset(df.columns):
+                if df['id'].dtype == 'int64' and df['is_canceled'].dtype == 'int64':
                     
                     # Check IDs are the same and in the same order
-                    if list(df['ID']) != list(correct_labels['ID']):
+                    if list(df['id']) != list(correct_labels['id']):
                         st.error("Mismatch in ID column. Ensure IDs match exactly and are in the same order.")
                     else:
                         st.success("CSV format is correct!")
@@ -150,9 +150,9 @@ if uploaded_file is not None:
                             st.info("Press the button to add your score to the leaderboard.")
 
                 else:
-                    st.error("Both 'ID' and 'Label' columns must be integers.")
+                    st.error("Both 'id' and 'is_canceled' columns must be integers.")
             else:
-                st.error("The file must contain 'ID' and 'Label' columns.")
+                st.error("The file must contain 'id' and 'is_canceled' columns.")
         except Exception as e:
             st.error(f"Error processing the file: {e}")
     else:
