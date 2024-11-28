@@ -118,7 +118,7 @@ if uploaded_file is not None:
                         merged_df = pd.merge(df, correct_labels, on="id", suffixes=('_pred', '_true'))
 
                         # Calculate F1 score
-                        score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
+                        score = f1_score(merged_df['is_canceled_pred'], merged_df['is_canceled_true'], average='macro')
                         st.write(f"Prediction f1_score(average='macro') **{score * 100:.2f}%**")
                         
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
