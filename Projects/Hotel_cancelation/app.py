@@ -49,7 +49,7 @@ sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard
 
 # Load correct labels
 pwd = st.secrets['pwd']
-correct_labels = decrypt_csv("Preproject/encrypted_data.csv", pwd)
+correct_labels = decrypt_csv("Projects/Hotel_cancelation/solution_pwd.csv", pwd)
 
 # Detect delimiter in uploaded file
 def detect_delimiter(uploaded_file) -> str:
@@ -64,7 +64,7 @@ def detect_delimiter(uploaded_file) -> str:
     return None
 
 # Display title and instructions
-st.title("Preproject Score Evaluation")
+st.title("Project Hotel cancelation: Score Evaluation")
 st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
 st.write("A sample file named example_prediction.csv was provided for guidance.")
 st.write("### Leaderboard")
@@ -122,11 +122,6 @@ if uploaded_file is not None:
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
                         st.write(f"Prediction f1_score(average='macro') **{score * 100:.2f}%**")
                         
-                        # Check if the score is better than 65%
-                        if score < 0.65:
-                            st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
-
-                        # Ask for user's name
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
 
                         # Add to leaderboard button
@@ -140,18 +135,10 @@ if uploaded_file is not None:
                                 
                                 leaderboard_df = pd.DataFrame(leaderboard_data)
                                 leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
-                                if user_name in leaderboard_df['Name'].values:
-                                    current_best_score = leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'].max()
-                                    if score > current_best_score:
-                                        # Find and update the row with the new high score
-                                        cell = sheet.find(user_name)
-                                        sheet.update_cell(cell.row, 2, score)
-                                        sheet.update_cell(cell.row, 3, timestamp)
-                                        st.balloons()
-                                else:
-                                    # Append new score to Google Sheets
-                                    sheet.append_row(score_entry)
-                                    st.balloons()
+                                
+                                # Append new score to Google Sheets
+                                sheet.append_row(score_entry)
+                                st.balloons()
 
                                 st.success("Your score has been added to the leaderboard!")
                                 
