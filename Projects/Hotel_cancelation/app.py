@@ -115,7 +115,7 @@ if uploaded_file is not None:
                         st.divider()
 
                         # Merge prediction DataFrame with correct labels
-                        merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
+                        merged_df = pd.merge(df, correct_labels, on="id", suffixes=('_pred', '_true'))
 
                         # Calculate F1 score
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
