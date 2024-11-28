@@ -45,7 +45,7 @@ with open('cred.json', 'w') as f:
 
 creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
-sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard spreadsheet
+sheet = client.open("leaderboard").sheet2  # Open first sheet of the leaderboard spreadsheet
 
 # Load correct labels
 pwd = st.secrets['pwd']
@@ -64,7 +64,7 @@ def detect_delimiter(uploaded_file) -> str:
     return None
 
 # Display title and instructions
-st.title("Project Hotel cancelation: Score Evaluation")
+st.title("Project Hotel cancelation: Score Evaluation 🏨")
 st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
 st.write("A sample file named example_prediction.csv was provided for guidance.")
 st.write("### Leaderboard")
