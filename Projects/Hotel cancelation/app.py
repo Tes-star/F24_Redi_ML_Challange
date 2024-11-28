@@ -46,10 +46,10 @@ with open('cred.json', 'w') as f:
 
 creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
-sheet = client.open("leaderboard").sheet2  # Open  sheet of the leaderboard spreadsheet
+sheet = client.open("leaderboard").sheet1  # Open  sheet of the leaderboard spreadsheet
 
 # Load correct labels
-pwd = 'save_pw123' #st.secrets['pwd']
+pwd = st.secrets['pwd']
 correct_labels = decrypt_csv("solution_pwd.csv", pwd)
 
 # Detect delimiter in uploaded file
