@@ -21,7 +21,7 @@ def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
     fernet = Fernet(key)
     with open(input_file, "rb") as file:
         decrypted_data = fernet.decrypt(file.read())
-    return pd.read_csv(io.BytesIO(decrypted_data), delimiter=";")
+    return pd.read_csv(io.BytesIO(decrypted_data))
 
 # Set up Google Sheets API
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
