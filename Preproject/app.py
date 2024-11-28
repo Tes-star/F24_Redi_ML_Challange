@@ -49,7 +49,7 @@ sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard
 
 # Load correct labels
 pwd = st.secrets['pwd']
-correct_labels = decrypt_csv("encrypted_data.csv", pwd)
+correct_labels = decrypt_csv("Preproject/encrypted_data.csv", pwd)
 
 # Detect delimiter in uploaded file
 def detect_delimiter(uploaded_file) -> str:
