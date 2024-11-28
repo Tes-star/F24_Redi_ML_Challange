@@ -64,7 +64,7 @@ def detect_delimiter(uploaded_file) -> str:
     return None
 
 # Display title and instructions
-st.title("Project Hotel cancelation: Score Evaluation 🏨")
+st.title("Project Hotel cancelation 🏨: \n Score Evaluation ")
 st.write("""Upload your predition CSV with two columns: 'id', 'is_canceled'. Ensure the file includes all required IDs, without any missing IDs.""")
 st.write("A sample file named sample_submission.csv was provided for guidance.")
 st.write("### Leaderboard")
