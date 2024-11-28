@@ -102,7 +102,6 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 if uploaded_file is not None:
     delimiter = detect_delimiter(uploaded_file)
     if delimiter:
-        try:
             df = pd.read_csv(uploaded_file, delimiter=delimiter)
             
             if set(['id', 'is_canceled']).issubset(df.columns):
@@ -153,8 +152,7 @@ if uploaded_file is not None:
                     st.error("Both 'id' and 'is_canceled' columns must be integers.")
             else:
                 st.error("The file must contain 'id' and 'is_canceled' columns.")
-        except Exception as e:
-            st.error(f"Error processing the file: {e}")
+        
     else:
         st.error("Could not detect a valid delimiter. Please ensure the file is correctly formatted.")
 else:
