@@ -21,7 +21,7 @@ def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
     fernet = Fernet(key)
     with open(input_file, "rb") as file:
         decrypted_data = fernet.decrypt(file.read())
-    return pd.read_csv(io.BytesIO(decrypted_data), delimiter=";")
+    return pd.read_csv(io.BytesIO(decrypted_data))
 
 # Set up Google Sheets API
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
@@ -45,11 +45,11 @@ with open('cred.json', 'w') as f:
 
 creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
-sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard spreadsheet
+sheet = client.open("leaderboard").get_worksheet(1)  # Open first sheet of the leaderboard spreadsheet
 
 # Load correct labels
 pwd = st.secrets['pwd']
-correct_labels = decrypt_csv("encrypted_data.csv", pwd)
+correct_labels = decrypt_csv("Projects/Toxic_comments/test_labels_pwd.csv", pwd)
 
 # Detect delimiter in uploaded file
 def detect_delimiter(uploaded_file) -> str:
@@ -64,9 +64,9 @@ def detect_delimiter(uploaded_file) -> str:
     return None
 
 # Display title and instructions
-st.title("Preproject Score Evaluation")
-st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
-st.write("A sample file named example_prediction.csv was provided for guidance.")
+st.title("Score Evaluation: Project Toxic language 🧪💬")
+st.write("""Upload your predition CSV with the columns: ID, toxic,severe_toxic,obscene,threat,insult,identity_hate. Ensure the file includes all required IDs, without any missing IDs.""")
+st.write("A sample file named sample_submission.csv was provided for guidance.")
 st.write("### Leaderboard")
 
 # Display leaderboard placeholder
@@ -102,72 +102,71 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 if uploaded_file is not None:
     delimiter = detect_delimiter(uploaded_file)
     if delimiter:
-        try:
-            df = pd.read_csv(uploaded_file, delimiter=delimiter)
-            
-            if set(['ID', 'Label']).issubset(df.columns):
-                if df['ID'].dtype == 'int64' and df['Label'].dtype == 'int64':
-                    
-                    # Check IDs are the same and in the same order
-                    if list(df['ID']) != list(correct_labels['ID']):
-                        st.error("Mismatch in ID column. Ensure IDs match exactly and are in the same order.")
-                    else:
-                        st.success("CSV format is correct!")
-                        st.divider()
+        df = pd.read_csv(uploaded_file, delimiter=delimiter)
+        
+        # Check for necessary columns
+        if set(['id'] + list(correct_labels.columns[1:])).issubset(df.columns):
+            if df['id'].dtype == correct_labels['id'].dtype:
+                
+                # Check IDs are the same and in the same order
+                if list(df['id']) != list(correct_labels['id']):
+                    st.error("Mismatch in ID column. Ensure IDs match exactly and are in the same order.")
+                else:
+                    st.success("CSV format is correct!")
+                    st.divider()
 
-                        # Merge prediction DataFrame with correct labels
-                        merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
+                    # Remove rows with only -1 in correct labels
+                    valid_rows = ~(correct_labels.iloc[:, 1:] == -1).all(axis=1)
+                    correct_labels = correct_labels[valid_rows]
+                    df = df[valid_rows]
 
-                        # Calculate F1 score
-                        score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
-                        st.write(f"Prediction f1_score(average='macro') **{score * 100:.2f}%**")
-                        
-                        # Check if the score is better than 65%
-                        if score < 0.65:
-                            st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
+                    # Merge prediction DataFrame with correct labels
+                    merged_df = pd.merge(df, correct_labels, on="id", suffixes=('_pred', '_true'))
 
-                        # Ask for user's name
-                        user_name = st.text_input("Enter your name for the leaderboard:", "")
+                    # Calculate F1 scores for each label
+                    label_columns = correct_labels.columns[1:]  # All label columns except 'id'
+                    f1_scores = {}
+                    for label in label_columns:
+                        f1_scores[label] = f1_score(
+                            merged_df[f"{label}_pred"],
+                            merged_df[f"{label}_true"],
+                            average='macro'
+                        )
 
-                        # Add to leaderboard button
-                        if st.button("Add to Leaderboard"):
-                            if user_name:
-                                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                score_entry = [user_name, score, timestamp]
+                    # Compute the average F1 score across all labels
+                    avg_f1_score = sum(f1_scores.values()) / len(f1_scores)
 
-                                # Check if user already exists and update score if necessary
-                                leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])
-                                
-                                leaderboard_df = pd.DataFrame(leaderboard_data)
-                                leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
-                                if user_name in leaderboard_df['Name'].values:
-                                    current_best_score = leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'].max()
-                                    if score > current_best_score:
-                                        # Find and update the row with the new high score
-                                        cell = sheet.find(user_name)
-                                        sheet.update_cell(cell.row, 2, score)
-                                        sheet.update_cell(cell.row, 3, timestamp)
-                                        st.balloons()
-                                else:
-                                    # Append new score to Google Sheets
-                                    sheet.append_row(score_entry)
-                                    st.balloons()
+                    st.write(f"Average F1 Score across all labels: **{avg_f1_score * 100:.2f}%**")
 
-                                st.success("Your score has been added to the leaderboard!")
-                                
-                                # Update the leaderboard display
-                                display_leaderboard()
-                            else:
-                                st.warning("Please enter your name to subscribe to the leaderboard.")
+                    user_name = st.text_input("Enter your name for the leaderboard:", "")
+
+                    # Add to leaderboard button
+                    if st.button("Add to Leaderboard"):
+                        if user_name:
+                            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            score_entry = [user_name, avg_f1_score, timestamp]
+
+                            # Retrieve leaderboard data
+                            leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])
+                            leaderboard_df = pd.DataFrame(leaderboard_data)
+                            leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
+
+                            # Append new score to Google Sheets
+                            sheet.append_row(score_entry)
+                            st.balloons()
+
+                            st.success("Your score has been added to the leaderboard!")
+
+                            # Update the leaderboard display
+                            display_leaderboard()
+
                         else:
                             st.info("Press the button to add your score to the leaderboard.")
 
-                else:
-                    st.error("Both 'ID' and 'Label' columns must be integers.")
+                
             else:
-                st.error("The file must contain 'ID' and 'Label' columns.")
-        except Exception as e:
-            st.error(f"Error processing the file: {e}")
+                st.error("The file must contain 'id' and 'is_canceled' columns.")
+        
     else:
         st.error("Could not detect a valid delimiter. Please ensure the file is correctly formatted.")
 else:
