@@ -40,17 +40,16 @@ cred={
   "client_x509_cert_url":  st.secrets['client_x509_cert_url'],
   "universe_domain":  st.secrets['universe_domain'],
 }
-
 with open('cred.json', 'w') as f:
     json.dump(cred, f)
 
 creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
-sheet = client.open("leaderboard").sheet1  # Open  sheet of the leaderboard spreadsheet
+sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard spreadsheet
 
 # Load correct labels
 pwd = st.secrets['pwd']
-correct_labels = decrypt_csv("solution_pwd.csv", pwd)
+correct_labels = decrypt_csv("Preproject/encrypted_data.csv", pwd)
 
 # Detect delimiter in uploaded file
 def detect_delimiter(uploaded_file) -> str:
@@ -65,7 +64,7 @@ def detect_delimiter(uploaded_file) -> str:
     return None
 
 # Display title and instructions
-st.title("Project Hotel cancelation: Score Evaluation 🏨")
+st.title("Preproject Score Evaluation")
 st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
 st.write("A sample file named example_prediction.csv was provided for guidance.")
 st.write("### Leaderboard")
@@ -106,11 +105,11 @@ if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file, delimiter=delimiter)
             
-            if set(['id', 'is_canceled']).issubset(df.columns):
-                if df['id'].dtype == 'int64' and df['is_canceled'].dtype == 'int64':
+            if set(['ID', 'Label']).issubset(df.columns):
+                if df['ID'].dtype == 'int64' and df['Label'].dtype == 'int64':
                     
                     # Check IDs are the same and in the same order
-                    if list(df['id']) != list(correct_labels['id']):
+                    if list(df['ID']) != list(correct_labels['ID']):
                         st.error("Mismatch in ID column. Ensure IDs match exactly and are in the same order.")
                     else:
                         st.success("CSV format is correct!")
@@ -123,6 +122,10 @@ if uploaded_file is not None:
                         score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
                         st.write(f"Prediction f1_score(average='macro') **{score * 100:.2f}%**")
                         
+                        # Check if the score is better than 65%
+                        if score < 0.65:
+                            st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
+
                         # Ask for user's name
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
 
@@ -132,9 +135,24 @@ if uploaded_file is not None:
                                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                 score_entry = [user_name, score, timestamp]
 
-                                # Append new score to Google Sheets
-                                sheet.append_row(score_entry)
-                                st.balloons()
+                                # Check if user already exists and update score if necessary
+                                leaderboard_data = sheet.get_all_records(numericise_ignore=["all"])
+                                
+                                leaderboard_df = pd.DataFrame(leaderboard_data)
+                                leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
+                                if user_name in leaderboard_df['Name'].values:
+                                    current_best_score = leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'].max()
+                                    if score > current_best_score:
+                                        # Find and update the row with the new high score
+                                        cell = sheet.find(user_name)
+                                        sheet.update_cell(cell.row, 2, score)
+                                        sheet.update_cell(cell.row, 3, timestamp)
+                                        st.balloons()
+                                else:
+                                    # Append new score to Google Sheets
+                                    sheet.append_row(score_entry)
+                                    st.balloons()
+
                                 st.success("Your score has been added to the leaderboard!")
                                 
                                 # Update the leaderboard display
@@ -145,9 +163,9 @@ if uploaded_file is not None:
                             st.info("Press the button to add your score to the leaderboard.")
 
                 else:
-                    st.error("Both 'id' and 'is_canceled' columns must be integers.")
+                    st.error("Both 'ID' and 'Label' columns must be integers.")
             else:
-                st.error("The file must contain 'id' and 'is_canceled' columns.")
+                st.error("The file must contain 'ID' and 'Label' columns.")
         except Exception as e:
             st.error(f"Error processing the file: {e}")
     else:
