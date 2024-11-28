@@ -45,7 +45,7 @@ with open('cred.json', 'w') as f:
 
 creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
-sheet = client.open("leaderboard").sheet2  # Open first sheet of the leaderboard spreadsheet
+sheet = client.open("leaderboard").get_worksheet(1)  # Open first sheet of the leaderboard spreadsheet
 
 # Load correct labels
 pwd = st.secrets['pwd']
