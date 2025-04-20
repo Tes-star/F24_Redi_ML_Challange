@@ -21,7 +21,7 @@ def decrypt_csv(input_file: str, password: str) -> pd.DataFrame:
     fernet = Fernet(key)
     with open(input_file, "rb") as file:
         decrypted_data = fernet.decrypt(file.read())
-    return pd.read_csv(io.BytesIO(decrypted_data), delimiter=";")
+    return pd.read_csv(io.BytesIO(decrypted_data))
 
 # Set up Google Sheets API
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
@@ -45,11 +45,11 @@ with open('cred.json', 'w') as f:
 
 creds = ServiceAccountCredentials.from_json_keyfile_name('cred.json', scope)
 client = gspread.authorize(creds)
-sheet = client.open("leaderboard").sheet1  # Open first sheet of the leaderboard spreadsheet
+sheet = client.open("leaderboard").get_worksheet(1)  # Open first sheet of the leaderboard spreadsheet
 
 # Load correct labels
 pwd = st.secrets['pwd']
-correct_labels = decrypt_csv("encrypted_data.csv", pwd)
+correct_labels = decrypt_csv("Projects/Hotel_cancelation/solution_pwd.csv", pwd)
 
 # Detect delimiter in uploaded file
 def detect_delimiter(uploaded_file) -> str:
@@ -64,9 +64,9 @@ def detect_delimiter(uploaded_file) -> str:
     return None
 
 # Display title and instructions
-st.title("Preproject Score Evaluation")
-st.write("""Upload your predition CSV with two columns: ID and Label. Ensure the file includes all required IDs, without any missing IDs.""")
-st.write("A sample file named example_prediction.csv was provided for guidance.")
+st.title("Score Evaluation: Project Hotel cancelation 🏨")
+st.write("""Upload your predition CSV with two columns: 'id', 'is_canceled'. Ensure the file includes all required IDs, without any missing IDs.""")
+st.write("A sample file named sample_submission.csv was provided for guidance.")
 st.write("### Leaderboard")
 
 # Display leaderboard placeholder
@@ -102,31 +102,25 @@ uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 if uploaded_file is not None:
     delimiter = detect_delimiter(uploaded_file)
     if delimiter:
-        try:
             df = pd.read_csv(uploaded_file, delimiter=delimiter)
             
-            if set(['ID', 'Label']).issubset(df.columns):
-                if df['ID'].dtype == 'int64' and df['Label'].dtype == 'int64':
+            if set(['id', 'is_canceled']).issubset(df.columns):
+                if df['id'].dtype == 'int64' and df['is_canceled'].dtype == 'int64':
                     
                     # Check IDs are the same and in the same order
-                    if list(df['ID']) != list(correct_labels['ID']):
+                    if list(df['id']) != list(correct_labels['id']):
                         st.error("Mismatch in ID column. Ensure IDs match exactly and are in the same order.")
                     else:
                         st.success("CSV format is correct!")
                         st.divider()
 
                         # Merge prediction DataFrame with correct labels
-                        merged_df = pd.merge(df, correct_labels, on="ID", suffixes=('_pred', '_true'))
+                        merged_df = pd.merge(df, correct_labels, on="id", suffixes=('_pred', '_true'))
 
                         # Calculate F1 score
-                        score = f1_score(merged_df['Label_pred'], merged_df['Label_true'], average='macro')
+                        score = f1_score(merged_df['is_canceled_pred'], merged_df['is_canceled_true'], average='macro')
                         st.write(f"Prediction f1_score(average='macro') **{score * 100:.2f}%**")
                         
-                        # Check if the score is better than 65%
-                        if score < 0.65:
-                            st.warning("You're close! A score of 65% is achievable without advanced strategies. Keep trying!")
-
-                        # Ask for user's name
                         user_name = st.text_input("Enter your name for the leaderboard:", "")
 
                         # Add to leaderboard button
@@ -140,18 +134,10 @@ if uploaded_file is not None:
                                 
                                 leaderboard_df = pd.DataFrame(leaderboard_data)
                                 leaderboard_df['Score'] = leaderboard_df['Score'].str.replace(',', '.').astype(float)
-                                if user_name in leaderboard_df['Name'].values:
-                                    current_best_score = leaderboard_df.loc[leaderboard_df['Name'] == user_name, 'Score'].max()
-                                    if score > current_best_score:
-                                        # Find and update the row with the new high score
-                                        cell = sheet.find(user_name)
-                                        sheet.update_cell(cell.row, 2, score)
-                                        sheet.update_cell(cell.row, 3, timestamp)
-                                        st.balloons()
-                                else:
-                                    # Append new score to Google Sheets
-                                    sheet.append_row(score_entry)
-                                    st.balloons()
+                                
+                                # Append new score to Google Sheets
+                                sheet.append_row(score_entry)
+                                st.balloons()
 
                                 st.success("Your score has been added to the leaderboard!")
                                 
@@ -163,11 +149,10 @@ if uploaded_file is not None:
                             st.info("Press the button to add your score to the leaderboard.")
 
                 else:
-                    st.error("Both 'ID' and 'Label' columns must be integers.")
+                    st.error("Both 'id' and 'is_canceled' columns must be integers.")
             else:
-                st.error("The file must contain 'ID' and 'Label' columns.")
-        except Exception as e:
-            st.error(f"Error processing the file: {e}")
+                st.error("The file must contain 'id' and 'is_canceled' columns.")
+        
     else:
         st.error("Could not detect a valid delimiter. Please ensure the file is correctly formatted.")
 else:
